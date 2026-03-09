@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    container_name: train-backend
+    volumes:
+      - ./data:/app/data # 持久化数据
+    environment:
+      - SECRET_KEY=your_secret_key_here
+    restart: always
+
+  frontend:
+    build: ./frontend
+    container_name: train-frontend
+    ports:
+      - "8000:80"
+    depends_on:
+      - backend
+    restart: always
