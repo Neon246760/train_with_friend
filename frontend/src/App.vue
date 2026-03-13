@@ -39,4 +39,9 @@ const logout = () => {
 body {
   margin: 0;
 }
+@media (max-width: 600px) {
+  .el-menu-item {
+    padding: 0 10px !important;
+  }
+}
 </style>

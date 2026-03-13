@@ -60,6 +60,8 @@ const onSubmit = async () => {
   background-color: #f0f2f5;
 }
 .login-card {
-  width: 400px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 10px;
 }
 </style>

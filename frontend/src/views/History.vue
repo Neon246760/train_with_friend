@@ -3,32 +3,41 @@
     <el-card>
       <template #header>
         <div class="header-actions">
-           <span>历史记录查询</span>
-           <el-space>
-             <el-select v-model="selectedFriendId" placeholder="查看谁的记录" clearable @change="fetchRecords">
+           <span class="title">历史记录查询</span>
+           <el-space wrap class="filters">
+             <el-select v-model="selectedFriendId" placeholder="查看谁的记录" clearable @change="fetchRecords" style="width: 150px">
                 <el-option label="我自己" :value="null" />
                 <el-option v-for="friend in friends" :key="friend.id" :label="friend.username" :value="friend.id" />
              </el-select>
-             <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" @change="filterRecords" />
+             <el-date-picker 
+                v-model="dateRange" 
+                type="daterange" 
+                range-separator="至" 
+                start-placeholder="开始" 
+                end-placeholder="结束" 
+                value-format="YYYY-MM-DD" 
+                @change="filterRecords" 
+                style="width: 240px"
+             />
            </el-space>
         </div>
       </template>
       
       <el-table :data="filteredRecords" style="width: 100%" :row-class-name="tableRowClassName">
-        <el-table-column prop="date" label="日期" sortable width="120" />
-        <el-table-column label="用户" width="100">
+        <el-table-column prop="date" label="日期" sortable width="110" fixed="left" />
+        <el-table-column label="用户" width="80">
              <template #default="scope">
-                <el-tag :type="isMyRecord(scope.row) ? '' : 'success'">
+                <el-tag :type="isMyRecord(scope.row) ? '' : 'success'" size="small">
                     {{ isMyRecord(scope.row) ? '我' : getFriendName(scope.row.user_id) }}
                 </el-tag>
              </template>
         </el-table-column>
-        <el-table-column prop="type" label="类型" width="100">
+        <el-table-column prop="type" label="类型" width="80">
            <template #default="scope">
-              {{ scope.row.type === 'jogging' ? '慢跑' : scope.row.type === 'interval' ? '间歇跑' : '素质训练' }}
+              {{ scope.row.type === 'jogging' ? '慢跑' : scope.row.type === 'interval' ? '间歇' : '素质' }}
            </template>
         </el-table-column>
-        <el-table-column label="详情">
+        <el-table-column label="详情" min-width="200">
            <template #default="scope">
                 <div v-if="scope.row.type === 'jogging'">
                   {{ scope.row.details.distance }}km, {{ scope.row.details.pace }}, {{ scope.row.details.heart_rate }}bpm
@@ -124,6 +133,23 @@ onMounted(async () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+@media (max-width: 600px) {
+    .history {
+        padding: 10px;
+    }
+    .header-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .filters {
+        width: 100%;
+    }
+    .filters :deep(.el-date-editor) {
+        width: 100% !important;
+    }
 }
 :deep(.el-table .friend-row) {
   background-color: #f0f9eb;

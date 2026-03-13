@@ -5,7 +5,7 @@
       <el-col :span="12">
         <el-card>
           <template #header>添加训练记录</template>
-          <el-form :model="form" label-width="100px">
+          <el-form :model="form" label-width="100px" :label-position="labelPosition">
             <el-form-item label="日期">
               <el-date-picker v-model="form.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" />
             </el-form-item>
@@ -36,7 +36,7 @@
             <!-- 间歇跑表单 -->
             <template v-if="form.type === 'interval'">
               <div v-for="(set, index) in form.details.sets" :key="index" class="interval-set">
-                <el-space>
+                <el-space wrap>
                   <el-form-item label="单组距离(m)" label-width="90px">
                     <el-input-number v-model="set.distance" :step="100" />
                   </el-form-item>
@@ -46,7 +46,7 @@
                   <el-button type="danger" circle icon="Delete" @click="removeSet(index)" v-if="form.details.sets.length > 1" />
                 </el-space>
               </div>
-              <el-button type="primary" plain @click="addSet" style="margin-bottom: 20px; margin-left: 100px;">添加训练组</el-button>
+              <el-button type="primary" plain @click="addSet" class="add-set-btn">添加训练组</el-button>
               <el-form-item label="备注">
                 <el-input v-model="form.details.note" type="textarea" />
               </el-form-item>
@@ -67,10 +67,10 @@
       </el-col>
 
       <!-- 右侧：好友与记录 -->
-      <el-col :span="12">
+      <el-col :xs="24" :md="12">
         <el-card style="margin-bottom: 20px;">
           <template #header>好友管理</template>
-          <el-space>
+          <el-space wrap>
             <el-select v-model="selectedFriendId" placeholder="选择好友查看记录" clearable @change="fetchRecords">
               <el-option v-for="friend in friends" :key="friend.id" :label="friend.username" :value="friend.id" />
             </el-select>
@@ -133,7 +133,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import api from '../api'
 import { ElMessage } from 'element-plus'
 
@@ -142,6 +142,11 @@ const selectedFriendId = ref(null)
 const newFriendUsername = ref('')
 const records = ref([])
 const currentUser = ref(null)
+const labelPosition = ref('right')
+
+const handleResize = () => {
+  labelPosition.value = window.innerWidth < 768 ? 'top' : 'right'
+}
 
 const form = reactive({
   date: new Date().toISOString().split('T')[0],
@@ -255,6 +260,8 @@ const getFriendName = (userId) => {
 }
 
 onMounted(async () => {
+  handleResize()
+  window.addEventListener('resize', handleResize)
   await fetchCurrentUser()
   await fetchFriends()
   // fetchRecords 在 fetchFriends 内部如果选中了好友会自动调用，或者在这里调用一次初始状态（无好友）
@@ -262,14 +269,39 @@ onMounted(async () => {
       fetchRecords()
   }
 })
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 </script>
 
 <style scoped>
 .dashboard {
   padding: 20px;
 }
+.mb-20 {
+    margin-bottom: 20px;
+}
+@media (min-width: 992px) {
+    .mb-20 {
+        margin-bottom: 0;
+    }
+}
 .interval-set {
   margin-bottom: 10px;
+}
+.add-set-btn {
+    margin-bottom: 20px;
+    margin-left: 100px;
+}
+@media (max-width: 768px) {
+    .add-set-btn {
+        margin-left: 0;
+        width: 100%;
+    }
+    .dashboard {
+        padding: 10px;
+    }
 }
 .record-header {
     display: flex;
