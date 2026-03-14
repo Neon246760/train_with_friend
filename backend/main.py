@@ -102,3 +102,38 @@ def delete_record(record_id: int, db: Session = Depends(auth.get_db), current_us
     if not success:
          raise HTTPException(status_code=404, detail="Record not found or permission denied")
     return {"ok": True}
+
+# --- Study Records Endpoints ---
+
+@app.post("/study_records/", response_model=schemas.StudyRecord)
+def create_study_record(record: schemas.StudyRecordCreate, db: Session = Depends(auth.get_db), current_user: schemas.User = Depends(auth.get_current_user)):
+    return crud.create_or_update_study_record(db=db, record=record, user_id=current_user.id)
+
+@app.get("/study_records/", response_model=List[schemas.StudyRecord])
+def read_study_records(
+    user_id: Optional[int] = None, 
+    friend_id: Optional[int] = None,
+    limit: int = 100,
+    db: Session = Depends(auth.get_db), 
+    current_user: schemas.User = Depends(auth.get_current_user)
+):
+    if user_id:
+        if user_id == current_user.id:
+             return crud.get_study_records(db, user_id=user_id, limit=limit)
+        
+        friends = crud.get_friends(db, user_id=current_user.id)
+        is_friend = any(f.id == user_id for f in friends)
+        if not is_friend:
+             raise HTTPException(status_code=403, detail="Not a friend")
+        
+        return crud.get_study_records(db, user_id=user_id, limit=limit)
+    
+    if friend_id:
+        friends = crud.get_friends(db, user_id=current_user.id)
+        is_friend = any(f.id == friend_id for f in friends)
+        if not is_friend:
+             raise HTTPException(status_code=403, detail="Not a friend")
+        
+        return crud.get_study_records_by_users(db, user_ids=[current_user.id, friend_id], limit=limit)
+
+    return crud.get_study_records(db, user_id=current_user.id, limit=limit)

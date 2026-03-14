@@ -1,11 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
-import Dashboard from '../views/Dashboard.vue'
+import Training from '../views/Training.vue'
+import Study from '../views/Study.vue'
+import Friends from '../views/Friends.vue'
 import History from '../views/History.vue'
 
 const routes = [
     { path: '/login', component: Login },
-    { path: '/', component: Dashboard, meta: { requiresAuth: true } },
+    { path: '/', component: Training, meta: { requiresAuth: true } },
+    { path: '/study', component: Study, meta: { requiresAuth: true } },
+    { path: '/friends', component: Friends, meta: { requiresAuth: true } },
     { path: '/history', component: History, meta: { requiresAuth: true } },
 ]
 

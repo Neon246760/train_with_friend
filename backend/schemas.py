@@ -42,6 +42,26 @@ class Record(RecordBase):
     class Config:
         from_attributes = True
 
+# --- Study Record ---
+class TodoItem(BaseModel):
+    text: str
+    completed: bool = False
+
+class StudyRecordBase(BaseModel):
+    date: date
+    todos: List[TodoItem]
+    review: Optional[str] = None
+
+class StudyRecordCreate(StudyRecordBase):
+    pass
+
+class StudyRecord(StudyRecordBase):
+    id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
 # --- Token ---
 class Token(BaseModel):
     access_token: str

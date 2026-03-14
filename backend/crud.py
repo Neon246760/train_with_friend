@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from datetime import date
 import models, schemas, auth
 
 def get_user_by_username(db: Session, username: str):
@@ -56,3 +57,42 @@ def delete_record(db: Session, record_id: int, user_id: int):
         db.commit()
         return True
     return False
+
+# --- Study Record CRUD ---
+
+def create_or_update_study_record(db: Session, record: schemas.StudyRecordCreate, user_id: int):
+    # Check if exists for this date
+    existing = db.query(models.StudyRecord).filter(
+        models.StudyRecord.user_id == user_id,
+        models.StudyRecord.date == record.date
+    ).first()
+    
+    if existing:
+        # Pydantic models to dicts
+        existing.todos = [item.dict() for item in record.todos]
+        existing.review = record.review
+        db.commit()
+        db.refresh(existing)
+        return existing
+    else:
+        # Convert Pydantic list of models to list of dicts for JSON storage
+        todos_data = [item.dict() for item in record.todos]
+        db_record = models.StudyRecord(
+            user_id=user_id,
+            date=record.date,
+            todos=todos_data,
+            review=record.review
+        )
+        db.add(db_record)
+        db.commit()
+        db.refresh(db_record)
+        return db_record
+
+def get_study_records(db: Session, user_id: int, skip: int = 0, limit: int = 100):
+    return db.query(models.StudyRecord).filter(models.StudyRecord.user_id == user_id).order_by(models.StudyRecord.date.desc()).offset(skip).limit(limit).all()
+
+def get_study_records_by_users(db: Session, user_ids: List[int], skip: int = 0, limit: int = 100):
+    return db.query(models.StudyRecord).filter(models.StudyRecord.user_id.in_(user_ids)).order_by(models.StudyRecord.date.desc()).offset(skip).limit(limit).all()
+
+def get_study_record_by_date(db: Session, user_id: int, target_date: date):
+    return db.query(models.StudyRecord).filter(models.StudyRecord.user_id == user_id, models.StudyRecord.date == target_date).first()

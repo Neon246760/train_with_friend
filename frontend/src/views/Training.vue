@@ -2,7 +2,7 @@
   <div class="dashboard">
     <el-row :gutter="20">
       <!-- 左侧：添加记录 -->
-      <el-col :span="12">
+      <el-col :xs="24" :md="12" class="mb-20">
         <el-card>
           <template #header>添加训练记录</template>
           <el-form :model="form" label-width="100px" :label-position="labelPosition">
@@ -68,32 +68,20 @@
 
       <!-- 右侧：好友与记录 -->
       <el-col :xs="24" :md="12">
-        <el-card style="margin-bottom: 20px;">
-          <template #header>好友管理</template>
-          <el-space wrap>
-            <el-select v-model="selectedFriendId" placeholder="选择好友查看记录" clearable @change="fetchRecords">
-              <el-option v-for="friend in friends" :key="friend.id" :label="friend.username" :value="friend.id" />
-            </el-select>
-            <el-popover placement="bottom" :width="300" trigger="click">
-              <template #reference>
-                <el-button>添加好友</el-button>
-              </template>
-              <el-input v-model="newFriendUsername" placeholder="输入好友用户名">
-                <template #append>
-                  <el-button @click="addFriend">添加</el-button>
-                </template>
-              </el-input>
-            </el-popover>
-          </el-space>
-          <div v-if="selectedFriendId" style="margin-top: 10px; color: #666; font-size: 0.9em;">
-             当前显示：我和 {{ getFriendName(selectedFriendId) }} 的记录
-          </div>
-        </el-card>
-
         <el-card>
-          <template #header>近期记录</template>
-          <el-timeline>
-            <el-timeline-item v-for="record in records" :key="record.id" :timestamp="record.date" placement="top" :type="isMyRecord(record) ? 'primary' : 'success'">
+          <template #header>
+            <div class="card-header">
+              <span>近期记录 (近3天)</span>
+              <div v-if="friendId">
+                 <el-tag type="success">当前搭子: {{ friendName }}</el-tag>
+                 <router-link to="/friends" style="margin-left: 5px; font-size: 0.8em;">更改</router-link>
+              </div>
+              <router-link to="/friends" v-else><el-button size="small">去寻找搭子</el-button></router-link>
+            </div>
+          </template>
+          
+          <el-timeline v-if="recentRecords.length > 0">
+            <el-timeline-item v-for="record in recentRecords" :key="record.id" :timestamp="record.date" placement="top" :type="isMyRecord(record) ? 'primary' : 'success'">
               <el-card :class="{ 'friend-record': !isMyRecord(record) }">
                 <div class="record-header">
                     <h4>{{ record.type === 'jogging' ? '慢跑' : record.type === 'interval' ? '间歇跑' : '素质训练' }}</h4>
@@ -126,6 +114,7 @@
               </el-card>
             </el-timeline-item>
           </el-timeline>
+          <el-empty v-else description="近3天无记录" />
         </el-card>
       </el-col>
     </el-row>
@@ -133,16 +122,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import api from '../api'
 import { ElMessage } from 'element-plus'
 
-const friends = ref([])
-const selectedFriendId = ref(null)
-const newFriendUsername = ref('')
 const records = ref([])
 const currentUser = ref(null)
 const labelPosition = ref('right')
+const friendId = ref(localStorage.getItem('compareFriendId'))
+const friendName = ref(localStorage.getItem('compareFriendName') || '好友')
 
 const handleResize = () => {
   labelPosition.value = window.innerWidth < 768 ? 'top' : 'right'
@@ -156,12 +144,11 @@ const form = reactive({
     pace: '',
     heart_rate: 150,
     note: '',
-    sets: [{ distance: 400, count: 1 }], // interval default
-    content: '' // quality default
+    sets: [{ distance: 400, count: 1 }],
+    content: ''
   }
 })
 
-// 监听类型变化，重置或调整 details 结构
 watch(() => form.type, (newType) => {
   if (newType === 'jogging') {
     form.details = { distance: 5, pace: '', heart_rate: 150, note: '' }
@@ -189,39 +176,11 @@ const fetchCurrentUser = async () => {
     }
 }
 
-const fetchFriends = async () => {
-  try {
-    const res = await api.get('/friends/')
-    friends.value = res.data
-    // 如果有好友，且当前没有选中好友，默认选中第一个好友
-    if (friends.value.length > 0 && !selectedFriendId.value) {
-        selectedFriendId.value = friends.value[0].id
-        // 重新获取记录以应用默认好友
-        fetchRecords()
-    }
-  } catch (e) {
-    ElMessage.error('获取好友列表失败')
-  }
-}
-
-const addFriend = async () => {
-  if (!newFriendUsername.value) return
-  try {
-    await api.post('/friends/', { friend_username: newFriendUsername.value })
-    ElMessage.success('好友添加成功')
-    newFriendUsername.value = ''
-    fetchFriends()
-  } catch (e) {
-    ElMessage.error('添加失败：用户不存在或已添加')
-  }
-}
-
 const fetchRecords = async () => {
   try {
     const params = {}
-    if (selectedFriendId.value) {
-      // 改用 friend_id 参数，以触发“我和好友混合展示”的逻辑
-      params.friend_id = selectedFriendId.value
+    if (friendId.value) {
+      params.friend_id = friendId.value
     }
     const res = await api.get('/records/', { params })
     records.value = res.data
@@ -229,6 +188,19 @@ const fetchRecords = async () => {
     ElMessage.error('获取记录失败')
   }
 }
+
+const recentRecords = computed(() => {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    // Set to midnight to include the full 3rd day back
+    threeDaysAgo.setHours(0,0,0,0);
+    
+    return records.value.filter(r => {
+        const rDate = new Date(r.date);
+        rDate.setHours(0,0,0,0); // Ensure time doesn't affect comparison if string parsing adds time
+        return rDate >= threeDaysAgo;
+    });
+})
 
 const submitRecord = async () => {
   try {
@@ -255,19 +227,18 @@ const isMyRecord = (record) => {
 }
 
 const getFriendName = (userId) => {
-    const friend = friends.value.find(f => f.id === userId)
-    return friend ? friend.username : '好友'
+    // If it's the friend we are comparing with, return their name
+    if (String(userId) === String(friendId.value)) {
+        return friendName.value
+    }
+    return '好友'
 }
 
 onMounted(async () => {
   handleResize()
   window.addEventListener('resize', handleResize)
   await fetchCurrentUser()
-  await fetchFriends()
-  // fetchRecords 在 fetchFriends 内部如果选中了好友会自动调用，或者在这里调用一次初始状态（无好友）
-  if (friends.value.length === 0) {
-      fetchRecords()
-  }
+  await fetchRecords()
 })
 
 onUnmounted(() => {
@@ -276,43 +247,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.dashboard {
-  padding: 20px;
-}
-.mb-20 {
-    margin-bottom: 20px;
-}
-@media (min-width: 992px) {
-    .mb-20 {
-        margin-bottom: 0;
-    }
-}
-.interval-set {
-  margin-bottom: 10px;
-}
-.add-set-btn {
-    margin-bottom: 20px;
-    margin-left: 100px;
-}
+.dashboard { padding: 20px; }
+.mb-20 { margin-bottom: 20px; }
+@media (min-width: 992px) { .mb-20 { margin-bottom: 0; } }
+.interval-set { margin-bottom: 10px; }
+.add-set-btn { margin-bottom: 20px; margin-left: 100px; }
 @media (max-width: 768px) {
-    .add-set-btn {
-        margin-left: 0;
-        width: 100%;
-    }
-    .dashboard {
-        padding: 10px;
-    }
+    .add-set-btn { margin-left: 0; width: 100%; }
+    .dashboard { padding: 10px; }
 }
-.record-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-.record-header h4 {
-    margin: 0;
-}
-.friend-record {
-    background-color: #f0f9eb; /* 浅绿色背景区分好友记录 */
-}
+.record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.record-header h4 { margin: 0; }
+.friend-record { background-color: #f0f9eb; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
 </style>

@@ -10,6 +10,7 @@ class User(Base):
     hashed_password = Column(String)
 
     records = relationship("TrainingRecord", back_populates="owner")
+    study_records = relationship("StudyRecord", back_populates="owner")
     
     # Friendship: user_id 指向当前用户，friend_id 指向好友
     friends = relationship("Friendship", foreign_keys="[Friendship.user_id]", back_populates="user")
@@ -40,3 +41,16 @@ class TrainingRecord(Base):
     details = Column(JSON) 
     
     owner = relationship("User", back_populates="records")
+
+class StudyRecord(Base):
+    __tablename__ = "study_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    date = Column(Date, index=True)
+    
+    # List of {text: str, completed: bool}
+    todos = Column(JSON, default=list)
+    review = Column(String, nullable=True)
+
+    owner = relationship("User", back_populates="study_records")

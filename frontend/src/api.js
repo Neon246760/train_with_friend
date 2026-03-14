@@ -26,4 +26,7 @@ api.interceptors.response.use(
     }
 );
 
+export const getStudyRecords = (params) => api.get('/study_records/', { params });
+export const saveStudyRecord = (data) => api.post('/study_records/', data);
+
 export default api;
